@@ -6,6 +6,7 @@ import com.android.tools.lint.detector.api.Issue
 import com.android.tools.lint.detector.api.JavaContext
 import com.android.tools.lint.detector.api.Scope
 import com.android.tools.lint.detector.api.Severity.INFORMATIONAL
+import com.intellij.psi.PsiClassType
 import org.jetbrains.uast.UAnnotated
 import org.jetbrains.uast.UField
 import org.jetbrains.uast.UMethod
@@ -25,14 +26,23 @@ internal class NetworkLayerClassSerializedNameDetector : RetrofitReturnTypeDetec
             val nonFinalFields = findAllReturnTypeFieldsOf(node)
                 .filterNot { !it.isStatic && it.getContainingUClass()?.isEnum == true }
                 .filterNot(::hasSerializedNameAnnotation)
-                .map { it.name }
 
             if (nonFinalFields.isNotEmpty()) {
+                val returnTypeLocation = (node.returnType as? PsiClassType)?.let {
+                    context.getLocation(findInnerTypeAsUClass(it)).file.name
+                }
+                val fieldsMessage = nonFinalFields.groupBy { it.containingClass }
+                    .map {
+                        "{${context.getLocation(it.key).file.name}: ${it.value.map { it.name }.joinToString()}}"
+                    }
+                    .joinToString()
                 context.report(
                     issue = ISSUE_NETWORK_LAYER_CLASS_SERIALIZED_NAME_RULE,
                     scopeClass = node,
                     location = context.getNameLocation(node),
-                    message = "Return type doesn't have @SerializedName annotation for $nonFinalFields fields."
+                    message = "Return type ${node.returnType?.presentableText} " +
+                        (returnTypeLocation?.let { "from $it " } ?: "") +
+                        "doesn't have @SerializedName annotation for fields: $fieldsMessage"
                 )
             }
 
@@ -73,7 +83,10 @@ internal class NetworkLayerClassSerializedNameDetector : RetrofitReturnTypeDetec
             category = CORRECTNESS,
             priority = 5,
             severity = INFORMATIONAL,
-            implementation = Implementation(NetworkLayerClassSerializedNameDetector::class.java, Scope.JAVA_FILE_SCOPE)
+            implementation = Implementation(
+                NetworkLayerClassSerializedNameDetector::class.java,
+                Scope.JAVA_FILE_SCOPE
+            )
         )
     }
 }

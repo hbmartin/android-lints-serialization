@@ -105,12 +105,14 @@ internal open class RetrofitReturnTypeDetector : Detector(), UastScanner {
                 .isNotEmpty()
         }
 
-        private fun findAllInnerFields(typeRef: PsiClassType): List<UField> {
-            val actualReturnType = findGenericClassType(typeRef)
-            val typeClass = actualReturnType
+        fun findInnerTypeAsUClass(typeRef: PsiClassType): UClass? {
+            return findGenericClassType(typeRef)
                 .resolve()
                 .toUElement() as? UClass
-                ?: return emptyList()
+        }
+
+        private fun findAllInnerFields(typeRef: PsiClassType): List<UField> {
+            val typeClass = findInnerTypeAsUClass(typeRef) ?: return emptyList()
 
             val innerFields: List<UField> = typeClass
                 .fields
