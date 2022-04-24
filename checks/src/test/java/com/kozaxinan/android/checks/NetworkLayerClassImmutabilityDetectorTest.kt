@@ -57,9 +57,9 @@ internal class NetworkLayerClassImmutabilityDetectorTest : LintDetectorTest() {
                 import io.reactivex.Single
 
                 data class Dto(
-                    val totalResults: Int,
+                    val totalResults: Int?,
                     val totalNewResults: Int,
-                    val name: String,
+                    val name: String?,
                     val bool: Boolean,
                     val list: Single<Section>
                 ) {
